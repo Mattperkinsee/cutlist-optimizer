@@ -1,10 +1,5 @@
 import { useState, useEffect } from "react";
-import {
-  Box,
-  Container,
-  Divider,
-  Button,
-} from "@mui/material";
+import { Box, Container, Divider, Button } from "@mui/material";
 import ArrowCircleRightIcon from "@mui/icons-material/ArrowCircleRight";
 import CutVisualization from "../components/CutVisualization";
 import CutsInventoryForm from "../components/CutsInventoryForm";
@@ -18,6 +13,7 @@ const Specs = () => {
 
   let savedCuts, savedInventory;
   useEffect(() => {
+    console.log("useeff");
     savedCuts = localStorage.getItem("cuts");
     savedInventory = localStorage.getItem("inventory");
 
@@ -32,7 +28,6 @@ const Specs = () => {
   }, []);
 
   useEffect(() => {
-    console.log("set cuts and inventory");
     if (savedCuts) return;
     localStorage.setItem("cuts", JSON.stringify(cuts));
     if (savedInventory) return;
@@ -43,7 +38,10 @@ const Specs = () => {
     const { name, value } = e.target;
     setField((prev) => ({
       ...prev,
-      [name]: value,
+      [name]:
+        name === "length" || name === "width" || name === "quantity"
+          ? Number(value)
+          : value,
     }));
   };
 
@@ -62,9 +60,9 @@ const Specs = () => {
     // Here you can handle the data as you need, whether it's sending it to a server or other logic
     console.log("Submitted Data:", JSON.stringify(data));
     console.log("data", data);
-    const result = await calculateBoardsNeeded(data.cuts, data.inventory);
+    const result = await generateCutList(data.cuts, data.inventory);
 
-    console.log("result", result);
+    console.log(" CUT LIST result", result);
     // drawCuts(result);
     setOptimized(result);
     console.log("optimized", result);
@@ -82,69 +80,16 @@ const Specs = () => {
     setList(newList);
   };
 
-  const calculateBoardsNeeded = (cuts, inventory) => {
+  const generateCutList = (cuts, inventory) => {
     const result = {
-      totalCutsMade: 0,
       totalBoardsUsed: 0,
+      cuts: 0,
       cutsDetails: [],
     };
 
-    // Clone the inventory so we can modify it without affecting the original
-    const remainingInventory = [...inventory];
+    let remainingPieces = cuts[0].quantity;
+    let currentBoardIndex = 0;
 
-    // Iterate through the cuts
-    for (const cut of cuts) {
-      let remainingCuts = cut.quantity;
-
-      // Iterate through the remaining inventory
-      for (let i = 0; i < remainingInventory.length && remainingCuts > 0; i++) {
-        const board = remainingInventory[i];
-
-        // Check if the cut can be made from this board
-        if (
-          board.length >= cut.length &&
-          board.width === cut.width &&
-          board.quantity > 0
-        ) {
-          // Number of cuts that can be made from this board
-          const cutsFromBoard = Math.min(
-            Math.floor(board.length / cut.length),
-            remainingCuts
-          );
-
-          // Length of the leftover
-          const leftoverLength = board.length - cutsFromBoard * cut.length;
-
-          // Record the cuts
-          for (let j = 0; j < cutsFromBoard; j++) {
-            result.cutsDetails.push({
-              cutLength: cut.length,
-              cutWidth: cut.width,
-              boardLength: board.length,
-              boardWidth: board.width,
-              leftover: leftoverLength,
-              cutPosition: j * cut.length,
-            });
-          }
-
-          // Update the total cuts made and total boards used
-          result.totalCutsMade += cutsFromBoard;
-          result.totalBoardsUsed += cutsFromBoard > 0 ? 1 : 0;
-
-          // Update the remaining cuts
-          remainingCuts -= cutsFromBoard;
-
-          // Update the remaining board quantity
-          board.quantity -= 1;
-        }
-      }
-
-      if (remainingCuts > 0) {
-        console.warn(
-          `Not enough boards to make all cuts of length ${cut.length} and width ${cut.width}`
-        );
-      }
-    }
 
     return result;
   };
@@ -182,7 +127,6 @@ const Specs = () => {
               setCut={setCut}
               cuts={cuts}
               setCuts={setCuts}
-              
             />
 
             <Divider sx={{ margin: "30px" }} />
@@ -199,9 +143,11 @@ const Specs = () => {
             <Divider sx={{ margin: "30px" }} />
             <strong>Cuts</strong> {optimized.totalCutsMade}
             <Divider sx={{ margin: "30px" }} />
+            <strong>Actual Cuts</strong> {optimized.actualCuts}
+            <Divider sx={{ margin: "30px" }} />
             <strong>Boards Used</strong>{" "}
-            {optimized.details ? optimized.details[0].boardsUsed : ""}
-            <CutVisualization optimized={optimized} />
+            {optimized.totalBoardsUsed ? optimized.totalBoardsUsed : ""}
+            <CutVisualization cutsDetails={optimized.cutsDetails} />
           </>
         )}
       </Container>

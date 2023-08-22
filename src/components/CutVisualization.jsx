@@ -1,44 +1,64 @@
-/* eslint-disable react/prop-types */
-import { useRef, useEffect } from 'react';
+import React, { useRef, useEffect } from 'react';
 
-const CutVisualization = ({ optimized }) => {
+const CutVisualization = ({ cutsDetails }) => {
   const canvasRef = useRef(null);
-    let data = optimized
-    useEffect(() => {
-      console.log('data ', data)
+
+  useEffect(() => {
     const canvas = canvasRef.current;
     const ctx = canvas.getContext('2d');
 
-    // Determine the number of boards used
-    const uniqueBoards = [...new Set(data.cutsDetails.map((cut) => cut.boardLength))];
+    // Clear the canvas
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    // Set the canvas height based on the number of boards
-    canvas.height = uniqueBoards.length * 20; // 20 pixels per board
-
-    // Define a scale factor to fit the canvas size
+    // Constants for better readability
+    const yOffsetBase = 60;
     const scale = 10;
+    const rectHeight = 30;
+    const textOffsetY = -15;
 
-    // Loop through each unique board
-    uniqueBoards.forEach((boardLength, boardIndex) => {
-      // Filter the cuts made from this board
-      const cutsFromBoard = data.cutsDetails.filter((cut) => cut.boardLength === boardLength);
+    cutsDetails.forEach((cut) => {
+      const yOffset = cut.boardIndex * yOffsetBase;
 
-      // Loop through the cuts and draw them
-      cutsFromBoard.forEach((cut, cutIndex) => {
-        ctx.fillStyle = cutIndex % 2 === 0 ? 'blue' : 'green'; // Alternate colors
-        ctx.fillRect(cut.cutPosition * scale, boardIndex * 20, cut.cutLength * scale, 20);
-      });
+      // Draw the board
+      ctx.fillStyle = '#EEEEEE'; // Light Grey
+      ctx.fillRect(0, yOffset, cut.boardLength * scale, rectHeight);
 
-      // Draw the leftover
-      ctx.fillStyle = 'red';
-      const lastCut = cutsFromBoard[cutsFromBoard.length - 1];
-      const leftoverStart = lastCut.cutPosition + parseInt(lastCut.cutLength);
-      ctx.fillRect(leftoverStart * scale, boardIndex * 20, lastCut.leftover * scale, 20);
+      // Draw the cut
+      ctx.fillStyle = '#64B5F6'; // Material Design Blue 500
+      const cutX = cut.boardIndex === 0 ? cut.cutPosition * scale : (cut.cutPosition - cut.boardLength) * scale;
+      ctx.fillRect(
+        cutX,
+        yOffset + (rectHeight - cut.cutWidth * scale) / 2,
+        cut.cutLength * scale,
+        cut.cutWidth * scale
+      );
+
+      // Add text labels for cuts and leftovers
+      ctx.fillStyle = '#424242'; // Material Design Grey 800
+      ctx.font = '14px Roboto, sans-serif';
+      ctx.fillText(
+        `Cut: ${cut.cutLength}`,
+        cutX,
+        yOffset + textOffsetY + rectHeight
+      );
+      ctx.fillText(
+        `Leftover: ${cut.leftover}`,
+        (cutX + cut.cutLength * scale),
+        yOffset + textOffsetY + rectHeight
+      );
     });
-  }, [data]);
+  }, [cutsDetails]);
 
   return (
-    <canvas ref={canvasRef} width="960" />
+    <canvas
+      ref={canvasRef}
+      width={960}
+      style={{
+        border: '1px solid #E0E0E0', // Material Design Grey 300
+        borderRadius: '4px',
+        boxShadow: '0px 2px 4px rgba(0, 0, 0, 0.1)', // Material Design shadow
+      }}
+    />
   );
 };
 
