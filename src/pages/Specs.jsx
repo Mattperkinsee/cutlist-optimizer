@@ -1,8 +1,7 @@
 import { useState, useEffect } from "react";
-import { Box, Container, Divider, Button } from "@mui/material";
-import ArrowCircleRightIcon from "@mui/icons-material/ArrowCircleRight";
-import CutVisualization from "../components/CutVisualization";
+import { Box, Grid, Paper, Typography } from "@mui/material";
 import CutsInventoryForm from "../components/CutsInventoryForm";
+import Board from "../components/Board";
 
 const Specs = () => {
   const [cuts, setCuts] = useState([]);
@@ -10,10 +9,10 @@ const Specs = () => {
   const [cut, setCut] = useState({ length: "", width: "", quantity: "" });
   const [item, setItem] = useState({ length: "", width: "", quantity: "" });
   const [optimized, setOptimized] = useState({});
+  const [boardSummary, setBoardSummary] = useState();
 
   let savedCuts, savedInventory;
   useEffect(() => {
-    console.log("useeff");
     savedCuts = localStorage.getItem("cuts");
     savedInventory = localStorage.getItem("inventory");
 
@@ -34,91 +33,106 @@ const Specs = () => {
     localStorage.setItem("inventory", JSON.stringify(inventory));
   }, [cuts, inventory]);
 
-  const handleInputChange = (setField, e) => {
-    const { name, value } = e.target;
-    setField((prev) => ({
-      ...prev,
-      [name]:
-        name === "length" || name === "width" || name === "quantity"
-          ? Number(value)
-          : value,
-    }));
-  };
+  // Initialize boards from the inventory.
+  function initializeBoards(inventory) {
+    let boards = [];
+    for (let item of inventory) {
+      for (let i = 0; i < item.quantity; i++) {
+        boards.push({
+          length: Number(item.length),
+          width: item.width,
+          cuts: [],
+          leftover: Number(item.length),
+        });
+      }
+    }
+    return boards;
+  }
 
-  const handleAdd = (setField, item, list, setList) => {
-    setList([...list, item]);
-    setField({ length: "", width: "", quantity: "" });
-  };
+  function placeCutsOnBoards(boards, cuts) {
+    for (let cutItem of cuts) {
+      for (let i = 0; i < cutItem.quantity; i++) {
+        // Try placing this cut on a board
+        for (let board of boards) {
+          if (
+            board.width >= cutItem.width &&
+            board.leftover >= cutItem.length
+          ) {
+            board.cuts.push({
+              length: cutItem.length,
+              width: cutItem.width,
+              fromBoard: boards.indexOf(board),
+            });
+            board.leftover -= cutItem.length;
+            break; // break as this cut piece is now placed
+          }
+        }
+      }
+    }
+  }
 
-  const handleSubmit = async () => {
-    // Prepare the data in the desired format
-    const data = {
-      cuts: cuts,
-      inventory: inventory,
-    };
+  function processCuts(data) {
+    let boards = initializeBoards(data.inventory);
+    placeCutsOnBoards(boards, data.cuts);
+    return boards;
+  }
 
-    // Here you can handle the data as you need, whether it's sending it to a server or other logic
-    console.log("Submitted Data:", JSON.stringify(data));
-    console.log("data", data);
-    const result = await generateCutList(data.cuts, data.inventory);
+  function getBoardSummary(boards) {
+    const boardMap = {};
 
-    console.log(" CUT LIST result", result);
-    // drawCuts(result);
-    setOptimized(result);
-    console.log("optimized", result);
-  };
+    // Step 1: Separate the data into unique board types
+    boards.forEach((board, index) => {
+      const key = `${board.length}x${board.width}`;
+      if (!boardMap[key]) {
+        boardMap[key] = {
+          totalBoards: 0,
+          totalArea: 0,
+          usedArea: 0,
+          uniqueBoardIndices: new Set(),
+        };
+      }
 
-  const handleDelete = (index, list, setList) => {
-    const newList = [...list];
-    newList.splice(index, 1);
-    setList(newList);
-  };
+      if (!boardMap[key].uniqueBoardIndices.has(board.fromBoard)) {
+        boardMap[key].uniqueBoardIndices.add(index);
+        boardMap[key].totalBoards++;
+        boardMap[key].totalArea += board.length * board.width;
+      }
 
-  const handleEdit = (index, name, value, list, setList) => {
-    const newList = [...list];
-    newList[index][name] = value;
-    setList(newList);
-  };
+      board.cuts.forEach((cut) => {
+        boardMap[key].usedArea += cut.length * cut.width;
+      });
+    });
 
-  const generateCutList = (cuts, inventory) => {
-    const result = {
-      totalBoardsUsed: 0,
-      cuts: 0,
-      cutsDetails: [],
-    };
+    const summary = {};
 
-    let remainingPieces = cuts[0].quantity;
-    let currentBoardIndex = 0;
+    // Step 2 and 3: Calculate waste and waste percentage
+    for (const key in boardMap) {
+      const boardData = boardMap[key];
+      let waste = 0;
+      let wastePercentage = 0;
 
+      if (boardData.totalArea > 0) {
+        waste = boardData.totalArea - boardData.usedArea;
+        wastePercentage = (waste / boardData.totalArea) * 100;
+      }
 
-    return result;
-  };
+      summary[key] = {
+        count: boardData.totalBoards,
+        totalArea: boardData.totalArea,
+        usedArea: boardData.usedArea,
+        wastePercentage: Number(wastePercentage),
+      };
+    }
+
+    return summary;
+  }
 
   return (
     <>
-      <Container>
-        <Box
-          component="main"
-          sx={{
-            display: "flex",
-            flexDirection: "column",
-            flexGrow: 1,
-            minHeight: "90vh",
-            textAlign: "center",
-          }}
-        >
-          <Box sx={{ marginTop: "20px" }}>
-            <ArrowCircleRightIcon
-              sx={{ opacity: 0 }}
-              color="primary"
-              fontSize="large"
-            />
-            {/* <h1>Inventory/Specs</h1> */}
+      <Grid container spacing={1} sx={{ marginTop: "10px" }}>
+        <Grid item xs={3}>
+          <Box>
             <CutsInventoryForm
-              handleAdd={handleAdd}
-              handleDelete={handleDelete}
-              handleEdit={handleEdit}
-              handleInputChange={handleInputChange}
               inventory={inventory}
               setInventory={setInventory}
               item={item}
@@ -127,30 +141,61 @@ const Specs = () => {
               setCut={setCut}
               cuts={cuts}
               setCuts={setCuts}
+              setOptimized={setOptimized}
+              setBoardSummary={setBoardSummary}
+              processCuts={processCuts}
+              getBoardSummary={getBoardSummary}
             />
-
-            <Divider sx={{ margin: "30px" }} />
-            <Button variant="contained" color="primary" onClick={handleSubmit}>
-              Optimize
-            </Button>
           </Box>
-        </Box>
+        </Grid>
+
         {Object.keys(optimized).length && (
           <>
-            {/* <Grid item xs={8}></Grid> */}
-            <Divider sx={{ margin: "30px" }} />
-            {/* <strong>Details</strong> {JSON.stringify(optimized.details)} */}
-            <Divider sx={{ margin: "30px" }} />
-            <strong>Cuts</strong> {optimized.totalCutsMade}
-            <Divider sx={{ margin: "30px" }} />
-            <strong>Actual Cuts</strong> {optimized.actualCuts}
-            <Divider sx={{ margin: "30px" }} />
-            <strong>Boards Used</strong>{" "}
-            {optimized.totalBoardsUsed ? optimized.totalBoardsUsed : ""}
-            <CutVisualization cutsDetails={optimized.cutsDetails} />
+            <Grid item xs={1}>
+              <Paper elevation={3} style={{ padding: "15px", margin: "5px" }}>
+                <strong>Cuts:</strong> {optimized.actualCuts}
+              </Paper>
+              <Paper elevation={3} style={{ padding: "15px", margin: "5px" }}>
+                <strong>Total Boards Used:</strong>{" "}
+                {optimized.length ? optimized.length : ""}
+              </Paper>
+            </Grid>
+            {boardSummary && (
+              <Grid item xs={7}>
+                <Paper elevation={3} style={{ padding: "15px" }}>
+                  <Typography variant="h5" gutterBottom>
+                    Boards Summary:
+                  </Typography>
+
+                  {Object.entries(boardSummary).map(([key, data]) => (
+                    <div
+                      key={key}
+                      style={{ display: "flex", alignItems: "center" }}
+                    >
+                      <Typography variant="body1">
+                        x{data.count} - <strong>{key}</strong> board(s).
+                      </Typography>
+                      <Typography
+                        variant="body2"
+                        color="textSecondary"
+                        style={{ marginLeft: "10px" }}
+                      >
+                        Waste: {data.wastePercentage.toFixed(2)}%
+                      </Typography>
+                    </div>
+                  ))}
+                </Paper>
+                {optimized.map((board, idx) => (
+                  <Grid item key={idx}>
+                    <Board board={board} />
+                  </Grid>
+                ))}
+              </Grid>
+            )}
+            <Grid container spacing={3}></Grid>
           </>
         )}
-      </Container>
+      </Grid>
     </>
   );
 };

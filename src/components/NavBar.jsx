@@ -1,20 +1,14 @@
 /* eslint-disable react/prop-types */
-// import React, { useState, useEffect } from "react";
 import AppBar from "@mui/material/AppBar";
 import Tabs from "@mui/material/Tabs";
 import Tab from "@mui/material/Tab";
 import Box from "@mui/material/Box";
 import { useNavigate, useLocation } from "react-router-dom";
-// import CloseIcon from "../images/icons/close-w-10.png";
-// import MaximizeIcon from "../images/icons/max-w-10.png";
-// import MinimizeIcon from "../images/icons/min-w-10.png";
-// import RestoreIcon from "../images/icons/restore-w-10.png";
 import { useTheme } from "@mui/material/styles";
 import IconButton from "@mui/material/IconButton";
 import DarkModeIcon from "@mui/icons-material/DarkMode";
 import LightModeIcon from "@mui/icons-material/LightMode";
 import { useDataContext } from "./context/DataContext";
-// const { ipcRenderer } = window.require("electron");
 
 export default function NavBar(props) {
   const navigate = useNavigate();
@@ -107,8 +101,8 @@ export default function NavBar(props) {
             indicatorColor="secondary"
             aria-label="simple tabs example"
           >
-            <Tab label="Inventory/Specs" disabled={isExecuting} />
-            <Tab label="Optimized Cutlist" disabled={isExecuting} />
+            {/* <Tab label="Inventory/Specs" disabled={isExecuting} /> */}
+            {/* <Tab label="Optimized Cutlist" disabled={isExecuting} /> */}
             {/* <Tab label="Execute" /> */}
           </Tabs>
 

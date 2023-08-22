@@ -1,0 +1,54 @@
+.board-container {
+    margin: 10px;
+    padding: 10px;
+}
+
+.board {
+    position: relative;
+    background-color: #DDD;
+    border: 1px solid black;
+    border-radius: 5px;
+    overflow: hidden; /* to make sure the cuts inside respect the board's border-radius */
+    margin-top: 10px;
+    margin-bottom: 10px;
+}
+
+.cut {
+    position: absolute;
+    bottom: 0;
+    background: linear-gradient(to right, white, lightcoral);
+}
+.cut-label {
+    writing-mode: vertical-lr; /* Vertical text */
+    transform: rotate(180deg); 
+    background-color: rgba(0, 0, 0, 0.5); /* Semi-transparent background for visibility */
+    color: white;
+    padding: 2px 4px;
+    font-size: 0.8em;
+    margin: auto;
+}
+
+.cut-width-label {
+    margin:auto;
+    position: absolute;
+    top: 0;
+    left: 0;
+    background-color: rgba(0, 0, 0, 0.5); /* Semi-transparent background for visibility */
+    color: white;
+    padding: 2px 4px;
+    font-size: 0.8em;
+}
+
+
+
+
+
+
+
+
+
+.cut:hover {
+    position: absolute;
+    bottom: 0;
+    background: linear-gradient(to right, white, rgb(196, 33, 33));
+}
