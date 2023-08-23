@@ -40,32 +40,65 @@ const Specs = () => {
       for (let i = 0; i < item.quantity; i++) {
         boards.push({
           length: Number(item.length),
-          width: item.width,
+          width: Number(item.width),
           cuts: [],
-          leftover: Number(item.length),
+          leftoverLength: Number(item.length),
+          leftoverWidth: Number(item.width),
         });
       }
     }
     return boards;
   }
 
-  function placeCutsOnBoards(boards, cuts) {
-    for (let cutItem of cuts) {
+  function sortCutsByHeight(cuts) {
+    return cuts.slice().sort((a, b) => b.length - a.length);
+  }
+
+  function shelfAlgorithm(boards, cuts) {
+    const sortedCuts = sortCutsByHeight(cuts);
+    let remainingHeight = boards[0].length;
+    let currentPosition = 0;
+
+    for (let cutItem of sortedCuts) {
       for (let i = 0; i < cutItem.quantity; i++) {
-        // Try placing this cut on a board
-        for (let board of boards) {
-          if (
-            board.width >= cutItem.width &&
-            board.leftover >= cutItem.length
-          ) {
-            board.cuts.push({
-              length: cutItem.length,
-              width: cutItem.width,
-              fromBoard: boards.indexOf(board),
-            });
-            board.leftover -= cutItem.length;
-            break; // break as this cut piece is now placed
-          }
+        if (
+          cutItem.length <= remainingHeight &&
+          currentPosition + cutItem.width <= boards[0].width
+        ) {
+          // Place on the current shelf
+          const board = boards[boards.length - 1];
+          board.cuts.push({
+            length: cutItem.length,
+            width: cutItem.width,
+            fromBoard: boards.length - 1,
+          });
+          currentPosition += cutItem.width;
+        } else if (cutItem.length <= remainingHeight) {
+          // Start a new shelf in the same board
+          currentPosition = cutItem.width;
+          const board = boards[boards.length - 1];
+          board.cuts.push({
+            length: cutItem.length,
+            width: cutItem.width,
+            fromBoard: boards.length - 1,
+          });
+        } else {
+          // Start a new board and place the cut there
+          const newBoard = {
+            length: boards[0].length,
+            width: boards[0].width,
+            cuts: [
+              {
+                length: cutItem.length,
+                width: cutItem.width,
+                fromBoard: boards.length,
+              },
+            ],
+            leftover: boards[0].length - cutItem.length,
+          };
+          boards.push(newBoard);
+          remainingHeight = newBoard.leftover;
+          currentPosition = cutItem.width;
         }
       }
     }
@@ -73,9 +106,37 @@ const Specs = () => {
 
   function processCuts(data) {
     let boards = initializeBoards(data.inventory);
-    placeCutsOnBoards(boards, data.cuts);
+    shelfAlgorithm(boards, data.cuts);
     return boards;
   }
+
+  // function placeCutsOnBoards(boards, cuts) {
+  //   for (let cutItem of cuts) {
+  //     for (let i = 0; i < cutItem.quantity; i++) {
+  //       // Try placing this cut on a board
+  //       for (let board of boards) {
+  //         if (
+  //           board.width >= cutItem.width &&
+  //           board.leftover >= cutItem.length
+  //         ) {
+  //           board.cuts.push({
+  //             length: cutItem.length,
+  //             width: cutItem.width,
+  //             fromBoard: boards.indexOf(board),
+  //           });
+  //           board.leftover -= cutItem.length;
+  //           break; // break as this cut piece is now placed
+  //         }
+  //       }
+  //     }
+  //   }
+  // }
+
+  // function processCuts(data) {
+  //   let boards = initializeBoards(data.inventory);
+  //   placeCutsOnBoards(boards, data.cuts);
+  //   return boards;
+  // }
 
   function getBoardSummary(boards) {
     const boardMap = {};

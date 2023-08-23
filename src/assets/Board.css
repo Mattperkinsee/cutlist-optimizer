@@ -6,11 +6,11 @@
 .board {
     position: relative;
     background-color: #DDD;
-    border: 1px solid black;
+    border: 5px solid black;
     border-radius: 5px;
     overflow: hidden; /* to make sure the cuts inside respect the board's border-radius */
-    margin-top: 10px;
-    margin-bottom: 10px;
+    /* margin-top: 10px;
+    margin-bottom: 10px; */
 }
 
 .cut {
@@ -38,12 +38,6 @@
     padding: 2px 4px;
     font-size: 0.8em;
 }
-
-
-
-
-
-
 
 
 
